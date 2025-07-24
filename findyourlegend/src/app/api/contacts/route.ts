@@ -7,19 +7,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
-    const search = searchParams.get('search') || ''
+    const search = (searchParams.get('search') || '').trim()
 
     const skip = (page - 1) * pageSize
 
     const where = search
       ? {
           OR: [
-            { firstName: { contains: search, mode: 'insensitive' as const } },
-            { lastName: { contains: search, mode: 'insensitive' as const } },
-            { role: { contains: search, mode: 'insensitive' as const } },
-            { club: { name: { contains: search, mode: 'insensitive' as const } } },
-            { player: { firstName: { contains: search, mode: 'insensitive' as const } } },
-            { player: { lastName: { contains: search, mode: 'insensitive' as const } } },
+            { firstName: { contains: search } },
+            { lastName: { contains: search } },
+            { role: { contains: search } },
+            { club: { name: { contains: search } } },
+            { player: { firstName: { contains: search } } },
+            { player: { lastName: { contains: search } } },
           ],
         }
       : {}

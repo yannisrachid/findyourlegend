@@ -1,13 +1,96 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { ClubModal } from '@/components/clubs/club-modal'
+import { CsvImportModal } from '@/components/clubs/csv-import-modal'
 import { ClubWithRelations, PaginatedResponse } from '@/types'
-import { Plus, Edit, Trash2, Building2, Users, Phone, Download } from 'lucide-react'
+import { Plus, Edit, Trash2, Building2, Users, Phone, Download, Upload } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+
+// Utility function to convert Wikipedia file URLs to direct image URLs
+const getImageUrl = (url: string): string => {
+  if (!url) return ''
+  
+  // Handle Wikipedia file URLs
+  if (url.includes('wikipedia.org/wiki/File:')) {
+    // Convert Wikipedia file URL to direct image URL
+    const filename = url.split('File:')[1]
+    if (filename) {
+      // Use direct Wikimedia Commons URL format
+      const encodedFilename = encodeURIComponent(filename)
+      return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}?width=64`
+    }
+  }
+  
+  // Return the URL as-is for other formats
+  return url
+}
+
+// Get multiple potential URLs for fallback
+const getLogoUrls = (url: string): string[] => {
+  if (!url) return []
+  
+  const urls: string[] = []
+  
+  // Handle Wikipedia file URLs with multiple fallback formats
+  if (url.includes('wikipedia.org/wiki/File:')) {
+    const filename = url.split('File:')[1]
+    if (filename) {
+      const encodedFilename = encodeURIComponent(filename)
+      // Try different Wikimedia formats
+      urls.push(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}?width=64`)
+      urls.push(`https://upload.wikimedia.org/wikipedia/commons/thumb/${filename}/64px-${filename}`)
+      urls.push(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}`)
+    }
+  } else {
+    // For other URLs, just use as-is
+    urls.push(url)
+  }
+  
+  return urls
+}
 import { exportClubsToExcel } from '@/lib/excel-export'
+
+// Logo component with error handling and fallback
+const ClubLogo = ({ club }: { club: ClubWithRelations }) => {
+  const [currentUrlIndex, setCurrentUrlIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  const logoUrls = getLogoUrls(club.logo)
+  const currentUrl = logoUrls[currentUrlIndex]
+  
+  if (!currentUrl || currentUrlIndex >= logoUrls.length) {
+    return <Building2 className="h-8 w-8 text-gray-400" />
+  }
+  
+  const handleError = () => {
+    setIsLoading(false)
+    // Try next URL if available
+    if (currentUrlIndex < logoUrls.length - 1) {
+      setCurrentUrlIndex(prev => prev + 1)
+      setIsLoading(true)
+    }
+  }
+  
+  return (
+    <div className="relative flex items-center justify-center">
+      {isLoading && (
+        <div className="h-8 w-8 rounded bg-gray-200 animate-pulse" />
+      )}
+      <img 
+        key={currentUrlIndex} // Force re-render when URL changes
+        src={currentUrl} 
+        alt={`${club.name} logo`}
+        className={`h-8 w-8 object-contain ${isLoading ? 'hidden' : 'block'}`}
+        onLoad={() => setIsLoading(false)}
+        onError={handleError}
+        loading="lazy"
+      />
+    </div>
+  )
+}
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<ClubWithRelations[]>([])
@@ -21,14 +104,19 @@ export default function ClubsPage() {
   })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedClub, setSelectedClub] = useState<ClubWithRelations | null>(null)
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false)
 
-  const fetchClubs = async () => {
+  const fetchClubs = useCallback(async (page?: number, pageSize?: number, search?: string) => {
     setLoading(true)
     try {
+      const currentPage = page ?? pagination.page ?? 1
+      const currentPageSize = pageSize ?? pagination.pageSize ?? 10
+      const currentSearch = search ?? searchValue ?? ''
+      
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        pageSize: pagination.pageSize.toString(),
-        search: searchValue,
+        page: currentPage.toString(),
+        pageSize: currentPageSize.toString(),
+        search: currentSearch,
       })
 
       const response = await fetch(`/api/clubs?${params}`)
@@ -45,15 +133,18 @@ export default function ClubsPage() {
       console.error('Error fetching clubs:', error)
     }
     setLoading(false)
-  }
+  }, [pagination.page, pagination.pageSize, searchValue])
 
   useEffect(() => {
-    fetchClubs()
-  }, [pagination.page, searchValue])
+    if (pagination.page && pagination.pageSize) {
+      fetchClubs()
+    }
+  }, [pagination.page, pagination.pageSize, searchValue])
 
   const handleSearch = (value: string) => {
     setSearchValue(value)
     setPagination((prev) => ({ ...prev, page: 1 }))
+    fetchClubs(1, 10, value)
   }
 
   const handlePageChange = (page: number) => {
@@ -103,11 +194,7 @@ export default function ClubsPage() {
       header: 'Logo',
       accessor: (club: ClubWithRelations) => (
         <div className="flex items-center justify-center">
-          {club.logo ? (
-            <img src={club.logo} alt={club.name} className="h-8 w-8 rounded-full object-cover" />
-          ) : (
-            <Building2 className="h-8 w-8 text-gray-400" />
-          )}
+          <ClubLogo club={club} />
         </div>
       ),
       className: 'w-16',
@@ -179,6 +266,10 @@ export default function ClubsPage() {
             <Download className="h-4 w-4 mr-2" />
             Export Excel
           </Button>
+          <Button variant="outline" onClick={() => setIsCsvModalOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Add data from CSV
+          </Button>
           <Button onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Club
@@ -201,6 +292,15 @@ export default function ClubsPage() {
         onClose={handleCloseModal}
         onSave={handleSave}
         club={selectedClub}
+      />
+
+      <CsvImportModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        onImportComplete={() => {
+          setIsCsvModalOpen(false)
+          fetchClubs()
+        }}
       />
     </div>
   )

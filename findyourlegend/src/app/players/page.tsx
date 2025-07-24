@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { PlayerModal } from '@/components/players/player-modal'
@@ -22,13 +22,17 @@ export default function PlayersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerWithRelations | null>(null)
 
-  const fetchPlayers = async () => {
+  const fetchPlayers = useCallback(async (page?: number, pageSize?: number, search?: string) => {
     setLoading(true)
     try {
+      const currentPage = page ?? pagination.page ?? 1
+      const currentPageSize = pageSize ?? pagination.pageSize ?? 10
+      const currentSearch = search ?? searchValue ?? ''
+      
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        pageSize: pagination.pageSize.toString(),
-        search: searchValue,
+        page: currentPage.toString(),
+        pageSize: currentPageSize.toString(),
+        search: currentSearch,
       })
 
       const response = await fetch(`/api/players?${params}`)
@@ -45,15 +49,18 @@ export default function PlayersPage() {
       console.error('Error fetching players:', error)
     }
     setLoading(false)
-  }
+  }, [pagination.page, pagination.pageSize, searchValue])
 
   useEffect(() => {
-    fetchPlayers()
-  }, [pagination.page, searchValue])
+    if (pagination.page && pagination.pageSize) {
+      fetchPlayers()
+    }
+  }, [pagination.page, pagination.pageSize, searchValue])
 
   const handleSearch = (value: string) => {
     setSearchValue(value)
     setPagination((prev) => ({ ...prev, page: 1 }))
+    fetchPlayers(1, 10, value)
   }
 
   const handlePageChange = (page: number) => {

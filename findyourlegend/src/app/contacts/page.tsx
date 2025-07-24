@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { ContactModal } from '@/components/contacts/contact-modal'
@@ -22,13 +22,17 @@ export default function ContactsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedContact, setSelectedContact] = useState<ContactWithRelations | null>(null)
 
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async (page?: number, pageSize?: number, search?: string) => {
     setLoading(true)
     try {
+      const currentPage = page ?? pagination.page ?? 1
+      const currentPageSize = pageSize ?? pagination.pageSize ?? 10
+      const currentSearch = search ?? searchValue ?? ''
+      
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        pageSize: pagination.pageSize.toString(),
-        search: searchValue,
+        page: currentPage.toString(),
+        pageSize: currentPageSize.toString(),
+        search: currentSearch,
       })
 
       const response = await fetch(`/api/contacts?${params}`)
@@ -45,15 +49,18 @@ export default function ContactsPage() {
       console.error('Error fetching contacts:', error)
     }
     setLoading(false)
-  }
+  }, [pagination.page, pagination.pageSize, searchValue])
 
   useEffect(() => {
-    fetchContacts()
-  }, [pagination.page, searchValue])
+    if (pagination.page && pagination.pageSize) {
+      fetchContacts()
+    }
+  }, [pagination.page, pagination.pageSize, searchValue])
 
   const handleSearch = (value: string) => {
     setSearchValue(value)
     setPagination((prev) => ({ ...prev, page: 1 }))
+    fetchContacts(1, 10, value)
   }
 
   const handlePageChange = (page: number) => {

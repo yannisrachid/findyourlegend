@@ -98,52 +98,62 @@ export function DataTable<T>({
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500">
-          Showing {(pagination.page - 1) * pagination.pageSize + 1} to{' '}
-          {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
-          {pagination.total} results
+          {pagination && pagination.page ? (
+            <>
+              Showing {(pagination.page - 1) * pagination.pageSize + 1} to{' '}
+              {Math.min(pagination.page * pagination.pageSize, pagination.total)} of{' '}
+              {pagination.total} results
+            </>
+          ) : (
+            'Loading...'
+          )}
         </div>
         <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pagination.page - 1)}
-            disabled={pagination.page <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <div className="flex items-center space-x-1">
-            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
-              .filter(
-                (page) =>
-                  page === 1 ||
-                  page === pagination.totalPages ||
-                  Math.abs(page - pagination.page) <= 1
-              )
-              .map((page, index, array) => (
-                <React.Fragment key={page}>
-                  {index > 0 && array[index - 1] !== page - 1 && (
-                    <span className="px-2">...</span>
-                  )}
-                  <Button
-                    variant={page === pagination.page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onPageChange(page)}
-                  >
-                    {page}
-                  </Button>
-                </React.Fragment>
-              ))}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(pagination.page + 1)}
-            disabled={pagination.page >= pagination.totalPages}
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+          {pagination && pagination.page ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (page) =>
+                      page === 1 ||
+                      page === pagination.totalPages ||
+                      Math.abs(page - pagination.page) <= 1
+                  )
+                  .map((page, index, array) => (
+                    <React.Fragment key={page}>
+                      {index > 0 && array[index - 1] !== page - 1 && (
+                        <span className="px-2">...</span>
+                      )}
+                      <Button
+                        variant={page === pagination.page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => onPageChange(page)}
+                      >
+                        {page}
+                      </Button>
+                    </React.Fragment>
+                  ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPageChange(pagination.page + 1)}
+                disabled={pagination.page >= pagination.totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
     </div>
