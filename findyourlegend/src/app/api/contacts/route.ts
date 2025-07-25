@@ -8,21 +8,53 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     const search = (searchParams.get('search') || '').trim()
+    const clubId = searchParams.get('clubId')
+    const playerId = searchParams.get('playerId')
 
     const skip = (page - 1) * pageSize
 
-    const where = search
-      ? {
-          OR: [
-            { firstName: { contains: search } },
-            { lastName: { contains: search } },
-            { role: { contains: search } },
-            { club: { name: { contains: search } } },
-            { player: { firstName: { contains: search } } },
-            { player: { lastName: { contains: search } } },
-          ],
+    let where: any = {}
+
+    // Add clubId filter if provided
+    if (clubId) {
+      where.clubId = clubId
+    }
+
+    // Add playerId filter if provided
+    if (playerId) {
+      where.playerId = playerId
+    }
+
+    // Add search filters if provided
+    if (search) {
+      const searchConditions = [
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
+        { role: { contains: search } },
+        { club: { name: { contains: search } } },
+        { player: { firstName: { contains: search } } },
+        { player: { lastName: { contains: search } } },
+      ]
+
+      if (where.clubId || where.playerId) {
+        const filters = []
+        if (where.clubId) {
+          filters.push({ clubId: where.clubId })
+          delete where.clubId
         }
-      : {}
+        if (where.playerId) {
+          filters.push({ playerId: where.playerId })
+          delete where.playerId
+        }
+        
+        where.AND = [
+          ...filters,
+          { OR: searchConditions }
+        ]
+      } else {
+        where.OR = searchConditions
+      }
+    }
 
     const [contacts, total] = await Promise.all([
       prisma.contact.findMany({

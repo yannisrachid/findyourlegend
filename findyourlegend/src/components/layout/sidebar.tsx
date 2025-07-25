@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Building2, Users, Phone, Trophy } from 'lucide-react'
+import { Building2, Users, Phone, Trophy, Map } from 'lucide-react'
 
 const navigation = [
   {
@@ -20,6 +20,11 @@ const navigation = [
     name: 'Contacts',
     href: '/contacts',
     icon: Phone,
+  },
+  {
+    name: 'Map',
+    href: '/map',
+    icon: Map,
   },
 ]
 
@@ -61,7 +66,7 @@ export function Sidebar() {
       
       <div className="p-4 border-t border-gray-200">
         <div className="text-xs text-gray-500 text-center">
-          © 2024 FindYourLegend CRM
+          © 2025 FindYourLegend CRM
         </div>
       </div>
     </div>

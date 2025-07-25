@@ -30,6 +30,7 @@ interface DataTableProps<T> {
   }
   onPageChange: (page: number) => void
   loading?: boolean
+  onRowClick?: (item: T) => void
 }
 
 export function DataTable<T>({
@@ -40,6 +41,7 @@ export function DataTable<T>({
   pagination,
   onPageChange,
   loading = false,
+  onRowClick,
 }: DataTableProps<T>) {
   return (
     <div className="space-y-4">
@@ -81,7 +83,11 @@ export function DataTable<T>({
               </TableRow>
             ) : (
               data.map((item, index) => (
-                <TableRow key={index}>
+                <TableRow 
+                  key={index}
+                  className={onRowClick ? "cursor-pointer hover:bg-gray-50" : ""}
+                  onClick={() => onRowClick?.(item)}
+                >
                   {columns.map((column, colIndex) => (
                     <TableCell key={colIndex} className={column.className}>
                       {typeof column.accessor === 'function'

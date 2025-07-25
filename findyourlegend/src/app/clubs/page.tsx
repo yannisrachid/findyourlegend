@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { ClubModal } from '@/components/clubs/club-modal'
@@ -13,18 +14,14 @@ import { formatDate } from '@/lib/utils'
 const getImageUrl = (url: string): string => {
   if (!url) return ''
   
-  // Handle Wikipedia file URLs
-  if (url.includes('wikipedia.org/wiki/File:')) {
-    // Convert Wikipedia file URL to direct image URL
-    const filename = url.split('File:')[1]
-    if (filename) {
-      // Use direct Wikimedia Commons URL format
-      const encodedFilename = encodeURIComponent(filename)
-      return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}?width=64`
-    }
+  // For Wikipedia URLs, we'll show the fallback icon for now
+  // This is because Wikipedia/Wikimedia has CORS restrictions and redirect issues
+  // that make it difficult to display images directly in browsers
+  if (url.includes('wikipedia.org')) {
+    return '' // This will trigger the fallback Building2 icon
   }
   
-  // Return the URL as-is for other formats
+  // Return the URL as-is for other formats (direct image URLs)
   return url
 }
 
@@ -53,25 +50,18 @@ const getLogoUrls = (url: string): string[] => {
 }
 import { exportClubsToExcel } from '@/lib/excel-export'
 
-// Logo component with error handling and fallback
+// Simplified logo component for testing
 const ClubLogo = ({ club }: { club: ClubWithRelations }) => {
-  const [currentUrlIndex, setCurrentUrlIndex] = useState(0)
+  const [imageError, setImageError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   
-  const logoUrls = getLogoUrls(club.logo)
-  const currentUrl = logoUrls[currentUrlIndex]
+  const logoUrl = getImageUrl(club.logo || '')
   
-  if (!currentUrl || currentUrlIndex >= logoUrls.length) {
+  console.log('Club:', club.name, 'Original URL:', club.logo, 'Converted URL:', logoUrl)
+  
+  if (!logoUrl || imageError) {
+    console.log('Showing fallback icon for:', club.name, 'Error:', imageError, 'Original URL:', club.logo)
     return <Building2 className="h-8 w-8 text-gray-400" />
-  }
-  
-  const handleError = () => {
-    setIsLoading(false)
-    // Try next URL if available
-    if (currentUrlIndex < logoUrls.length - 1) {
-      setCurrentUrlIndex(prev => prev + 1)
-      setIsLoading(true)
-    }
   }
   
   return (
@@ -80,12 +70,18 @@ const ClubLogo = ({ club }: { club: ClubWithRelations }) => {
         <div className="h-8 w-8 rounded bg-gray-200 animate-pulse" />
       )}
       <img 
-        key={currentUrlIndex} // Force re-render when URL changes
-        src={currentUrl} 
+        src={logoUrl} 
         alt={`${club.name} logo`}
         className={`h-8 w-8 object-contain ${isLoading ? 'hidden' : 'block'}`}
-        onLoad={() => setIsLoading(false)}
-        onError={handleError}
+        onLoad={() => {
+          console.log('Image loaded successfully for:', club.name, 'URL:', logoUrl)
+          setIsLoading(false)
+        }}
+        onError={() => {
+          console.log('Image failed to load for:', club.name, 'URL:', logoUrl)
+          setImageError(true)
+          setIsLoading(false)
+        }}
         loading="lazy"
       />
     </div>
@@ -93,6 +89,7 @@ const ClubLogo = ({ club }: { club: ClubWithRelations }) => {
 }
 
 export default function ClubsPage() {
+  const router = useRouter()
   const [clubs, setClubs] = useState<ClubWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
@@ -189,6 +186,10 @@ export default function ClubsPage() {
     }
   }
 
+  const handleRowClick = (club: ClubWithRelations) => {
+    router.push(`/clubs/${club.id}`)
+  }
+
   const columns = [
     {
       header: 'Logo',
@@ -236,7 +237,7 @@ export default function ClubsPage() {
     {
       header: 'Actions',
       accessor: (club: ClubWithRelations) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" onClick={() => handleEdit(club)}>
             <Edit className="h-4 w-4" />
           </Button>
@@ -285,6 +286,7 @@ export default function ClubsPage() {
         pagination={pagination}
         onPageChange={handlePageChange}
         loading={loading}
+        onRowClick={handleRowClick}
       />
 
       <ClubModal

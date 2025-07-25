@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { ContactModal } from '@/components/contacts/contact-modal'
@@ -10,6 +11,7 @@ import { formatDate } from '@/lib/utils'
 import { exportContactsToExcel } from '@/lib/excel-export'
 
 export default function ContactsPage() {
+  const router = useRouter()
   const [contacts, setContacts] = useState<ContactWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
@@ -105,6 +107,10 @@ export default function ContactsPage() {
     }
   }
 
+  const handleRowClick = (contact: ContactWithRelations) => {
+    router.push(`/contacts/${contact.id}`)
+  }
+
   const columns = [
     {
       header: 'Name',
@@ -154,7 +160,7 @@ export default function ContactsPage() {
     {
       header: 'Actions',
       accessor: (contact: ContactWithRelations) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" onClick={() => handleEdit(contact)}>
             <Edit className="h-4 w-4" />
           </Button>
@@ -199,6 +205,7 @@ export default function ContactsPage() {
         pagination={pagination}
         onPageChange={handlePageChange}
         loading={loading}
+        onRowClick={handleRowClick}
       />
 
       <ContactModal

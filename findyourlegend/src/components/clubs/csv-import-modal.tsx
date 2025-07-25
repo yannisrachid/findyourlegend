@@ -123,7 +123,7 @@ export function CsvImportModal({ isOpen, onClose, onImportComplete }: CsvImportM
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• Header row with columns: Logo, Name, City, Country</li>
               <li>• Supports both comma (,) and semicolon (;) separators</li>
-              <li>• Logo: URL to the club logo image (optional)</li>
+              <li>• Logo: Direct image URL (optional) - Note: Wikipedia URLs will show fallback icon</li>
               <li>• Name: Club name (required)</li>
               <li>• City: Club city (required)</li>
               <li>• Country: Club country (required)</li>

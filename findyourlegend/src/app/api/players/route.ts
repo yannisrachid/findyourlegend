@@ -8,20 +8,37 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const pageSize = parseInt(searchParams.get('pageSize') || '10')
     const search = (searchParams.get('search') || '').trim()
+    const clubId = searchParams.get('clubId')
 
     const skip = (page - 1) * pageSize
 
-    const where = search
-      ? {
-          OR: [
-            { firstName: { contains: search } },
-            { lastName: { contains: search } },
-            { position: { contains: search } },
-            { nationality: { contains: search } },
-            { club: { name: { contains: search } } },
-          ],
-        }
-      : {}
+    let where: any = {}
+
+    // Add clubId filter if provided
+    if (clubId) {
+      where.clubId = clubId
+    }
+
+    // Add search filters if provided
+    if (search) {
+      const searchConditions = [
+        { firstName: { contains: search } },
+        { lastName: { contains: search } },
+        { position: { contains: search } },
+        { nationality: { contains: search } },
+        { club: { name: { contains: search } } },
+      ]
+
+      if (where.clubId) {
+        where.AND = [
+          { clubId: where.clubId },
+          { OR: searchConditions }
+        ]
+        delete where.clubId
+      } else {
+        where.OR = searchConditions
+      }
+    }
 
     const [players, total] = await Promise.all([
       prisma.player.findMany({

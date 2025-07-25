@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { PlayerModal } from '@/components/players/player-modal'
@@ -10,6 +11,7 @@ import { formatDate } from '@/lib/utils'
 import { exportPlayersToExcel } from '@/lib/excel-export'
 
 export default function PlayersPage() {
+  const router = useRouter()
   const [players, setPlayers] = useState<PlayerWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [searchValue, setSearchValue] = useState('')
@@ -105,6 +107,10 @@ export default function PlayersPage() {
     }
   }
 
+  const handleRowClick = (player: PlayerWithRelations) => {
+    router.push(`/players/${player.id}`)
+  }
+
   const columns = [
     {
       header: 'Photo',
@@ -155,7 +161,7 @@ export default function PlayersPage() {
     {
       header: 'Actions',
       accessor: (player: PlayerWithRelations) => (
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
           <Button variant="ghost" size="sm" onClick={() => handleEdit(player)}>
             <Edit className="h-4 w-4" />
           </Button>
@@ -200,6 +206,7 @@ export default function PlayersPage() {
         pagination={pagination}
         onPageChange={handlePageChange}
         loading={loading}
+        onRowClick={handleRowClick}
       />
 
       <PlayerModal
