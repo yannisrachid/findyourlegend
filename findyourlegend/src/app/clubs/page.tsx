@@ -9,84 +9,8 @@ import { CsvImportModal } from '@/components/clubs/csv-import-modal'
 import { ClubWithRelations, PaginatedResponse } from '@/types'
 import { Plus, Edit, Trash2, Building2, Users, Phone, Download, Upload } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
-
-// Utility function to convert Wikipedia file URLs to direct image URLs
-const getImageUrl = (url: string): string => {
-  if (!url) return ''
-  
-  // For Wikipedia URLs, we'll show the fallback icon for now
-  // This is because Wikipedia/Wikimedia has CORS restrictions and redirect issues
-  // that make it difficult to display images directly in browsers
-  if (url.includes('wikipedia.org')) {
-    return '' // This will trigger the fallback Building2 icon
-  }
-  
-  // Return the URL as-is for other formats (direct image URLs)
-  return url
-}
-
-// Get multiple potential URLs for fallback
-const getLogoUrls = (url: string): string[] => {
-  if (!url) return []
-  
-  const urls: string[] = []
-  
-  // Handle Wikipedia file URLs with multiple fallback formats
-  if (url.includes('wikipedia.org/wiki/File:')) {
-    const filename = url.split('File:')[1]
-    if (filename) {
-      const encodedFilename = encodeURIComponent(filename)
-      // Try different Wikimedia formats
-      urls.push(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}?width=64`)
-      urls.push(`https://upload.wikimedia.org/wikipedia/commons/thumb/${filename}/64px-${filename}`)
-      urls.push(`https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}`)
-    }
-  } else {
-    // For other URLs, just use as-is
-    urls.push(url)
-  }
-  
-  return urls
-}
 import { exportClubsToExcel } from '@/lib/excel-export'
-
-// Simplified logo component for testing
-const ClubLogo = ({ club }: { club: ClubWithRelations }) => {
-  const [imageError, setImageError] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  
-  const logoUrl = getImageUrl(club.logo || '')
-  
-  console.log('Club:', club.name, 'Original URL:', club.logo, 'Converted URL:', logoUrl)
-  
-  if (!logoUrl || imageError) {
-    console.log('Showing fallback icon for:', club.name, 'Error:', imageError, 'Original URL:', club.logo)
-    return <Building2 className="h-8 w-8 text-gray-400" />
-  }
-  
-  return (
-    <div className="relative flex items-center justify-center">
-      {isLoading && (
-        <div className="h-8 w-8 rounded bg-gray-200 animate-pulse" />
-      )}
-      <img 
-        src={logoUrl} 
-        alt={`${club.name} logo`}
-        className={`h-8 w-8 object-contain ${isLoading ? 'hidden' : 'block'}`}
-        onLoad={() => {
-          console.log('Image loaded successfully for:', club.name, 'URL:', logoUrl)
-          setIsLoading(false)
-        }}
-        onError={() => {
-          console.log('Image failed to load for:', club.name, 'URL:', logoUrl)
-          setImageError(true)
-          setIsLoading(false)
-        }}
-        loading="lazy"
-      />
-    </div>
-  )
-}
+import { ClubLogo } from '@/components/ui/club-logo'
 
 export default function ClubsPage() {
   const router = useRouter()
@@ -195,7 +119,7 @@ export default function ClubsPage() {
       header: 'Logo',
       accessor: (club: ClubWithRelations) => (
         <div className="flex items-center justify-center">
-          <ClubLogo club={club} />
+          <ClubLogo key={`${club.id}-${club.logo}`} club={club} size="md" />
         </div>
       ),
       className: 'w-16',

@@ -6,50 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ClubWithRelations, PlayerWithRelations, ContactWithRelations } from '@/types'
 import { ArrowLeft, Building2, Users, Phone, Mail, Globe, MapPin, Edit, Trash2, Plus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
-
-// Utility function to convert Wikipedia file URLs to direct image URLs
-const getImageUrl = (url: string): string => {
-  if (!url) return ''
-  
-  // For Wikipedia URLs, we'll show the fallback icon for now
-  if (url.includes('wikipedia.org')) {
-    return '' // This will trigger the fallback Building2 icon
-  }
-  
-  return url
-}
-
-// Club logo component
-const ClubLogo = ({ club, size = 'large' }: { club: ClubWithRelations; size?: 'small' | 'large' }) => {
-  const [imageError, setImageError] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  
-  const logoUrl = getImageUrl(club.logo || '')
-  const sizeClasses = size === 'large' ? 'h-24 w-24' : 'h-8 w-8'
-  
-  if (!logoUrl || imageError) {
-    return <Building2 className={`${sizeClasses} text-gray-400`} />
-  }
-  
-  return (
-    <div className="relative flex items-center justify-center">
-      {isLoading && (
-        <div className={`${sizeClasses} rounded bg-gray-200 animate-pulse`} />
-      )}
-      <img 
-        src={logoUrl} 
-        alt={`${club.name} logo`}
-        className={`${sizeClasses} object-contain ${isLoading ? 'hidden' : 'block'}`}
-        onLoad={() => setIsLoading(false)}
-        onError={() => {
-          setImageError(true)
-          setIsLoading(false)
-        }}
-        loading="lazy"
-      />
-    </div>
-  )
-}
+import { ClubLogo } from '@/components/ui/club-logo'
 
 export default function ClubDetailPage() {
   const params = useParams()
@@ -177,7 +134,7 @@ export default function ClubDetailPage() {
       <div className="bg-white rounded-lg border border-gray-200 mb-6">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center space-x-6">
-            <ClubLogo club={club} size="large" />
+            <ClubLogo key={`${club.id}-${club.logo}-xl`} club={club} size="xl" />
             <div className="flex-1">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">{club.name}</h2>
               <div className="flex items-center space-x-4 text-gray-600">

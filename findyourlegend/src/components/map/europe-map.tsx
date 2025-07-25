@@ -6,6 +6,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Building2 } from 'lucide-react'
+import { ClubLogoSimple } from '@/components/ui/club-logo'
 
 // Fix for default markers in React Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -132,20 +133,11 @@ export default function EuropeMap({ cities }: EuropeMapProps) {
                       onClick={() => handleClubClick(club.id)}
                     >
                       <div className="flex-shrink-0">
-                        {club.logo && !club.logo.includes('wikipedia.org') ? (
-                          <img 
-                            src={club.logo} 
-                            alt={`${club.name} logo`}
-                            className="h-6 w-6 object-contain rounded"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = 'none'
-                              target.nextElementSibling!.classList.remove('hidden')
-                            }}
-                          />
-                        ) : null}
-                        <Building2 
-                          className={`h-6 w-6 text-blue-500 ${club.logo && !club.logo.includes('wikipedia.org') ? 'hidden' : ''}`} 
+                        <ClubLogoSimple 
+                          key={`${club.id}-${club.logo}-sm`}
+                          logoUrl={club.logo} 
+                          clubName={club.name} 
+                          size="sm"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
