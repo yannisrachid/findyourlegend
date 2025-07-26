@@ -12,6 +12,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "FindYourLegend - CRM",
   description: "Complete CRM solution for sports management",
+  icons: {
+    icon: "/ylfc_logo_blue_nobg.png",
+    shortcut: "/ylfc_logo_blue_nobg.png",
+    apple: "/ylfc_logo_blue_nobg.png",
+  },
 };
 
 export default function RootLayout({

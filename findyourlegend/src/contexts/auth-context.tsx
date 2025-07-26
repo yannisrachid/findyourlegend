@@ -17,13 +17,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Hardcoded user for authentication
-const ADMIN_USER = {
-  id: '1',
-  username: 'admin',
-  password: 'admin',
-  role: 'admin'
-}
+// Authentication is now handled via API endpoint for security
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -45,23 +39,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    // Check credentials
-    if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
-      const loggedInUser = {
-        id: ADMIN_USER.id,
-        username: ADMIN_USER.username,
-        role: ADMIN_USER.role
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.user) {
+        setUser(data.user)
+        localStorage.setItem('auth-user', JSON.stringify(data.user))
+        return true
       }
-      
-      setUser(loggedInUser)
-      localStorage.setItem('auth-user', JSON.stringify(loggedInUser))
-      return true
+
+      return false
+    } catch (error) {
+      console.error('Login error:', error)
+      return false
     }
-    
-    return false
   }
 
   const logout = () => {

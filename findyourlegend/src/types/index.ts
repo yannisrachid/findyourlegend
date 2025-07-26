@@ -1,6 +1,6 @@
-import { Club, Player, Contact, ContactType } from '@/generated/prisma'
+import { Club, Player, Contact, ContactType, Prospect as PrismaProspect, ProspectStage as PrismaProspectStage } from '@/generated/prisma'
 
-export type { Club, Player, Contact, ContactType }
+export type { Club, Player, Contact, ContactType, PrismaProspect, PrismaProspectStage }
 
 export interface ClubWithRelations extends Club {
   players?: Player[]
@@ -78,16 +78,10 @@ export interface PaginatedResponse<T> {
   totalPages: number
 }
 
-export type ProspectStage = 'prequalification' | 'relance1' | 'relance2' | 'relance3'
+export type ProspectStage = PrismaProspectStage
 
-export interface Prospect {
-  id: string
-  contactId: string
+export interface Prospect extends PrismaProspect {
   contact: ContactWithRelations
-  stage: ProspectStage
-  createdAt: string
-  updatedAt: string
-  notes?: string
 }
 
 export interface ProspectFormData {

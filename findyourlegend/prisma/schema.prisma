@@ -76,6 +76,30 @@ model Contact {
   club     Club?   @relation(fields: [clubId], references: [id], onDelete: Cascade)
   playerId String?
   player   Player? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  
+  // Prospect relation
+  prospects Prospect[]
 
   @@map("contacts")
+}
+
+enum ProspectStage {
+  prequalification
+  relance1
+  relance2
+  relance3
+}
+
+model Prospect {
+  id        String        @id @default(cuid())
+  stage     ProspectStage @default(prequalification)
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("prospects")
 }

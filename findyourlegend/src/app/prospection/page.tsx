@@ -15,79 +15,7 @@ const COLUMNS = [
   { id: 'relance3', title: 'Relance 3', color: 'bg-red-50 border-red-200' },
 ] as const
 
-// Mock data for demonstration - in real app this would come from API
-const mockProspects: Prospect[] = [
-  {
-    id: '1',
-    contactId: 'contact1',
-    contact: {
-      id: 'contact1',
-      firstName: 'John',
-      lastName: 'Smith',
-      role: 'Agent',
-      email: 'john.smith@email.com',
-      phone: '+1 555 0101',
-      type: 'PLAYER',
-      clubId: null,
-      playerId: 'player1',
-      notes: null,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-      player: {
-        id: 'player1',
-        firstName: 'Marcus',
-        lastName: 'Johnson',
-        age: 22,
-        position: 'Forward',
-        nationality: 'USA',
-        clubId: 'club1',
-        photo: null,
-        email: null,
-        phone: null,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-      },
-    },
-    stage: 'prequalification',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    notes: 'Initial contact made',
-  },
-  {
-    id: '2',
-    contactId: 'contact2',
-    contact: {
-      id: 'contact2',
-      firstName: 'Sarah',
-      lastName: 'Wilson',
-      role: 'Director',
-      email: 'sarah.wilson@clubfc.com',
-      phone: '+1 555 0202',
-      type: 'CLUB',
-      clubId: 'club1',
-      playerId: null,
-      notes: null,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-      club: {
-        id: 'club1',
-        name: 'FC Barcelona',
-        city: 'Barcelona',
-        country: 'Spain',
-        logo: null,
-        email: null,
-        phone: null,
-        website: null,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-      },
-    },
-    stage: 'relance1',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    notes: 'Follow-up needed',
-  },
-]
+// Prospects will be loaded from API
 
 // Prospect card component
 const ProspectCard = ({ 
@@ -259,12 +187,33 @@ const ProspectColumn = ({
 }
 
 export default function ProspectionPage() {
-  const [prospects, setProspects] = useState<Prospect[]>(mockProspects)
+  const [prospects, setProspects] = useState<Prospect[]>([])
+  const [loading, setLoading] = useState(true)
   const [draggedProspect, setDraggedProspect] = useState<Prospect | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingProspect, setEditingProspect] = useState<Prospect | null>(null)
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'entity'>('date')
+
+  // Fetch prospects from API
+  const fetchProspects = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch('/api/prospects?pageSize=1000')
+      const data = await response.json()
+      setProspects(data.data || [])
+    } catch (error) {
+      console.error('Error fetching prospects:', error)
+      alert('Failed to load prospects. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load prospects on component mount
+  useEffect(() => {
+    fetchProspects()
+  }, [])
 
   // Group prospects by stage
   const prospectsByStage = COLUMNS.reduce((acc, column) => {
@@ -278,20 +227,47 @@ export default function ProspectionPage() {
     setIsEditModalOpen(true)
   }
 
-  const handleDeleteProspect = (prospect: Prospect) => {
-    setProspects(prev => prev.filter(p => p.id !== prospect.id))
+  const handleDeleteProspect = async (prospect: Prospect) => {
+    try {
+      const response = await fetch(`/api/prospects/${prospect.id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setProspects(prev => prev.filter(p => p.id !== prospect.id))
+      } else {
+        throw new Error('Failed to delete prospect')
+      }
+    } catch (error) {
+      console.error('Error deleting prospect:', error)
+      alert('Failed to delete prospect. Please try again.')
+    }
   }
 
-  const handleUpdateProspect = (prospectId: string, stage: ProspectStage, notes?: string) => {
-    setProspects(prev => 
-      prev.map(prospect => 
-        prospect.id === prospectId 
-          ? { ...prospect, stage, notes, updatedAt: new Date().toISOString() }
-          : prospect
-      )
-    )
-    setIsEditModalOpen(false)
-    setEditingProspect(null)
+  const handleUpdateProspect = async (prospectId: string, stage: ProspectStage, notes?: string) => {
+    try {
+      const response = await fetch(`/api/prospects/${prospectId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage, notes }),
+      })
+
+      if (response.ok) {
+        const updatedProspect = await response.json()
+        setProspects(prev => 
+          prev.map(prospect => 
+            prospect.id === prospectId ? updatedProspect : prospect
+          )
+        )
+        setIsEditModalOpen(false)
+        setEditingProspect(null)
+      } else {
+        throw new Error('Failed to update prospect')
+      }
+    } catch (error) {
+      console.error('Error updating prospect:', error)
+      alert('Failed to update prospect. Please try again.')
+    }
   }
 
   // Drag and drop handlers
@@ -305,17 +281,35 @@ export default function ProspectionPage() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDrop = (e: React.DragEvent, newStage: ProspectStage) => {
+  const handleDrop = async (e: React.DragEvent, newStage: ProspectStage) => {
     e.preventDefault()
     
     if (draggedProspect && draggedProspect.stage !== newStage) {
-      setProspects(prev => 
-        prev.map(prospect => 
-          prospect.id === draggedProspect.id 
-            ? { ...prospect, stage: newStage, updatedAt: new Date().toISOString() }
-            : prospect
-        )
-      )
+      try {
+        // Update prospect stage via API
+        const response = await fetch(`/api/prospects/${draggedProspect.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            stage: newStage, 
+            notes: draggedProspect.notes 
+          }),
+        })
+
+        if (response.ok) {
+          const updatedProspect = await response.json()
+          setProspects(prev => 
+            prev.map(prospect => 
+              prospect.id === draggedProspect.id ? updatedProspect : prospect
+            )
+          )
+        } else {
+          throw new Error('Failed to update prospect stage')
+        }
+      } catch (error) {
+        console.error('Error updating prospect stage:', error)
+        alert('Failed to update prospect stage. Please try again.')
+      }
     }
     
     setDraggedProspect(null)
@@ -352,31 +346,24 @@ export default function ProspectionPage() {
   // Handle adding new prospect
   const handleAddProspect = async (contactId: string, stage: ProspectStage, notes?: string) => {
     try {
-      // Fetch the selected contact to get full details
-      const contactResponse = await fetch(`/api/contacts/${contactId}`)
-      if (!contactResponse.ok) {
-        throw new Error('Failed to fetch contact details')
+      // Create new prospect via API
+      const response = await fetch('/api/prospects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId, stage, notes }),
+      })
+
+      if (response.ok) {
+        const newProspect = await response.json()
+        setProspects(prev => [...prev, newProspect])
+        setIsAddModalOpen(false)
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create prospect')
       }
-      
-      const contactData: ContactWithRelations = await contactResponse.json()
-      
-      // Create new prospect with real contact data
-      const newProspect: Prospect = {
-        id: Date.now().toString(),
-        contactId,
-        contact: contactData,
-        stage,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes,
-      }
-      
-      setProspects(prev => [...prev, newProspect])
-      setIsAddModalOpen(false)
     } catch (error) {
       console.error('Error adding prospect:', error)
-      // Show error message to user
-      alert('Failed to add prospect. Please try again.')
+      alert(error instanceof Error ? error.message : 'Failed to add prospect. Please try again.')
     }
   }
 
@@ -415,21 +402,30 @@ export default function ProspectionPage() {
       </div>
 
       {/* Kanban Board */}
-      <div className="flex space-x-6 h-full pb-6">
-        {COLUMNS.map((column) => (
-          <ProspectColumn
-            key={column.id}
-            column={column}
-            prospects={sortProspects(prospectsByStage[column.id as ProspectStage])}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onEdit={handleEditProspect}
-            onDelete={handleDeleteProspect}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="h-12 w-12 bg-blue-500 rounded-full mx-auto mb-4 animate-pulse" />
+            <p className="text-gray-600">Loading prospects...</p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex space-x-6 h-full pb-6">
+          {COLUMNS.map((column) => (
+            <ProspectColumn
+              key={column.id}
+              column={column}
+              prospects={sortProspects(prospectsByStage[column.id as ProspectStage])}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onEdit={handleEditProspect}
+              onDelete={handleDeleteProspect}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Add Prospect Modal */}
       <AddProspectModal

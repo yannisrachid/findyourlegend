@@ -1,6 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Function to fetch coordinates from OpenStreetMap Nominatim API (free geocoding)
+async function getCoordinatesFromGeocoding(city: string, country: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    // Use Nominatim API (free, no API key required)
+    const query = encodeURIComponent(`${city}, ${country}`)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&addressdetails=1`,
+      {
+        headers: {
+          'User-Agent': 'FindYourLegend-App/1.0 (contact@yourlegendfc.com)', // Required by Nominatim
+        },
+      }
+    )
+    
+    if (!response.ok) {
+      console.error(`Geocoding API error for ${city}, ${country}: ${response.status}`)
+      return null
+    }
+    
+    const data = await response.json()
+    
+    if (data && data.length > 0) {
+      const result = data[0]
+      const lat = parseFloat(result.lat)
+      const lng = parseFloat(result.lon)
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        console.log(`Auto-geocoded ${city}, ${country}: lat=${lat}, lng=${lng}`)
+        return { lat, lng }
+      }
+    }
+    
+    console.log(`No coordinates found for ${city}, ${country}`)
+    return null
+  } catch (error) {
+    console.error(`Error geocoding ${city}, ${country}:`, error)
+    return null
+  }
+}
+
 interface CityWithClubs {
   city: string
   country: string
@@ -230,6 +270,7 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
   'Castellón': { lat: 39.9864, lng: -0.0513 },
   'Cádiz': { lat: 36.5297, lng: -6.2920 },
   'Córdoba': { lat: 37.8882, lng: -4.7794 },
+  'Eibar': { lat: 43.1847, lng: -2.4719 },
   'Elche': { lat: 38.2622, lng: -0.7011 },
   'Elda': { lat: 38.4783, lng: -0.7908 },
   'Ferrol': { lat: 43.4840, lng: -8.2336 },
@@ -288,6 +329,8 @@ function getCityKey(city: string, country: string): string {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('Cities API: Fetching clubs data for map...')
+    
     // Get all clubs grouped by city and country
     const clubs = await prisma.club.findMany({
       select: {
@@ -303,10 +346,13 @@ export async function GET(request: NextRequest) {
         { name: 'asc' }
       ]
     })
+    
+    console.log(`Cities API: Found ${clubs.length} clubs in database`)
 
     // Group clubs by city
     const cityMap = new Map<string, CityWithClubs>()
 
+    // First pass: group clubs and check for existing coordinates
     for (const club of clubs) {
       const key = `${club.city}, ${club.country}`
       
@@ -330,16 +376,58 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Second pass: auto-geocode cities without coordinates
+    const citiesArray = Array.from(cityMap.values())
+    const citiesNeedingCoordinates = citiesArray.filter(city => !city.latitude || !city.longitude)
+    
+    if (citiesNeedingCoordinates.length > 0) {
+      console.log(`Cities API: Auto-geocoding ${citiesNeedingCoordinates.length} cities without coordinates...`)
+      
+      // Process geocoding requests with a small delay to respect rate limits
+      for (const city of citiesNeedingCoordinates) {
+        const coordinates = await getCoordinatesFromGeocoding(city.city, city.country)
+        
+        if (coordinates) {
+          city.latitude = coordinates.lat
+          city.longitude = coordinates.lng
+          console.log(`Cities API: Successfully geocoded ${city.city}, ${city.country}`)
+        } else {
+          console.log(`Cities API: Failed to geocode ${city.city}, ${city.country}`)
+        }
+        
+        // Small delay to respect Nominatim rate limits (1 request per second)
+        await new Promise(resolve => setTimeout(resolve, 1100))
+      }
+    }
+
     const cities = Array.from(cityMap.values())
     
     // Only return cities that have coordinates (can be placed on map)
     const mappableCities = cities.filter(city => city.latitude && city.longitude)
+    const unmappableCities = cities.filter(city => !city.latitude || !city.longitude)
     
-    console.log(`Found ${cities.length} total cities, ${mappableCities.length} mappable cities`)
+    console.log(`Cities API: Found ${cities.length} total cities, ${mappableCities.length} mappable cities`)
+    
+    if (unmappableCities.length > 0) {
+      console.log('Cities API: Unmappable cities (missing coordinates):')
+      unmappableCities.forEach(city => {
+        console.log(`  - ${city.city}, ${city.country} (${city.clubs.length} clubs)`)
+        city.clubs.forEach(club => {
+          console.log(`    • ${club.name}`)
+        })
+      })
+    }
+
+    const totalClubsCount = cities.reduce((sum, city) => sum + city.clubs.length, 0)
 
     return NextResponse.json({
       cities: mappableCities,
-      total: mappableCities.length,
+      total: totalClubsCount,
+      unmappable: unmappableCities.map(city => ({
+        city: city.city,
+        country: city.country,
+        clubs: city.clubs.length
+      }))
     })
 
   } catch (error) {

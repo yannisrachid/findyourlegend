@@ -11,79 +11,7 @@ import { Mail, Send, Wand2, Settings, Users, RefreshCw, Eye } from 'lucide-react
 import { EmailPreviewModal } from '@/components/email/email-preview-modal'
 import { EmailSettingsModal } from '@/components/email/email-settings-modal'
 
-// Mock prospects data - in real app this would come from API
-const mockProspects: Prospect[] = [
-  {
-    id: '1',
-    contactId: 'contact1',
-    contact: {
-      id: 'contact1',
-      firstName: 'John',
-      lastName: 'Smith',
-      role: 'Agent',
-      email: 'john.smith@email.com',
-      phone: '+1 555 0101',
-      type: 'PLAYER',
-      clubId: null,
-      playerId: 'player1',
-      notes: null,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-      player: {
-        id: 'player1',
-        firstName: 'Marcus',
-        lastName: 'Johnson',
-        age: 22,
-        position: 'Forward',
-        nationality: 'USA',
-        clubId: 'club1',
-        photo: null,
-        email: null,
-        phone: null,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-      },
-    },
-    stage: 'prequalification',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    notes: 'Initial contact made',
-  },
-  {
-    id: '2',
-    contactId: 'contact2',
-    contact: {
-      id: 'contact2',
-      firstName: 'Sarah',
-      lastName: 'Wilson',
-      role: 'Director',
-      email: 'sarah.wilson@clubfc.com',
-      phone: '+1 555 0202',
-      type: 'CLUB',
-      clubId: 'club1',
-      playerId: null,
-      notes: null,
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z',
-      club: {
-        id: 'club1',
-        name: 'FC Barcelona',
-        city: 'Barcelona',
-        country: 'Spain',
-        logo: null,
-        email: null,
-        phone: null,
-        website: null,
-        createdAt: '2024-01-15T10:00:00Z',
-        updatedAt: '2024-01-15T10:00:00Z',
-      },
-    },
-    stage: 'relance1',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z',
-    notes: 'Follow-up needed',
-  },
-]
+// Prospects will be loaded from API
 
 const STAGE_LABELS = {
   prequalification: 'Prequalification',
@@ -93,7 +21,7 @@ const STAGE_LABELS = {
 } as const
 
 export default function EmailPage() {
-  const [prospects, setProspects] = useState<Prospect[]>(mockProspects)
+  const [prospects, setProspects] = useState<Prospect[]>([])
   const [selectedStage, setSelectedStage] = useState<ProspectStage | ''>('')
   const [emailSubject, setEmailSubject] = useState('')
   const [emailContent, setEmailContent] = useState('')
@@ -102,6 +30,31 @@ export default function EmailPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [selectedProspects, setSelectedProspects] = useState<string[]>([])
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'fr' | 'it' | 'es'>('en')
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+
+  // Load prospects from API
+  const fetchProspects = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch('/api/prospects')
+      if (response.ok) {
+        const data = await response.json()
+        setProspects(data.data || [])
+      } else {
+        console.error('Failed to fetch prospects')
+      }
+    } catch (error) {
+      console.error('Error fetching prospects:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Load prospects on component mount
+  useEffect(() => {
+    fetchProspects()
+  }, [])
 
   // Filter prospects by selected stage
   const filteredProspects = selectedStage 
@@ -548,6 +501,95 @@ Equipo YOUR LEGEND`
     }
   }
 
+  // Send emails to selected prospects
+  const handleSendEmails = async () => {
+    if (!emailSubject || !emailContent || selectedProspects.length === 0) {
+      alert('Please ensure you have a subject, content, and selected recipients')
+      return
+    }
+
+    setIsSending(true)
+    try {
+      const selectedProspectData = filteredProspects.filter(p => selectedProspects.includes(p.id))
+      let successCount = 0
+      let errorCount = 0
+      const errors: string[] = []
+      
+      // Send emails one by one
+      for (const prospect of selectedProspectData) {
+        if (!prospect.contact.email) {
+          errorCount++
+          errors.push(`${prospect.contact.firstName} ${prospect.contact.lastName} has no email address`)
+          continue
+        }
+
+        try {
+          const { subject, content } = getPreviewContent(prospect)
+          
+          const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: prospect.contact.email,
+              subject: subject,
+              content: content,
+              prospectName: `${prospect.contact.firstName} ${prospect.contact.lastName}`,
+            }),
+          })
+
+          if (response.ok) {
+            successCount++
+            console.log(`Email sent successfully to ${prospect.contact.email}`)
+          } else {
+            let errorData
+            try {
+              errorData = await response.json()
+            } catch (parseError) {
+              errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+            }
+            errorCount++
+            const errorMessage = errorData.error || errorData.details || `HTTP ${response.status}: ${response.statusText}`
+            errors.push(`${prospect.contact.firstName} ${prospect.contact.lastName}: ${errorMessage}`)
+            console.error(`Failed to send email to ${prospect.contact.email}:`, {
+              status: response.status,
+              statusText: response.statusText,
+              errorData
+            })
+          }
+        } catch (error) {
+          errorCount++
+          errors.push(`${prospect.contact.firstName} ${prospect.contact.lastName}: Network error`)
+          console.error(`Error sending email to ${prospect.contact.email}:`, error)
+        }
+
+        // Small delay between emails to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+      
+      // Show results
+      if (successCount > 0 && errorCount === 0) {
+        alert(`✅ Successfully sent ${successCount} emails!`)
+        // Reset form on complete success
+        setEmailSubject('')
+        setEmailContent('')
+        setSelectedProspects([])
+        setSelectedStage('')
+      } else if (successCount > 0 && errorCount > 0) {
+        alert(`⚠️ Partially successful: ${successCount} emails sent, ${errorCount} failed.\n\nErrors:\n${errors.join('\n')}`)
+      } else {
+        alert(`❌ Failed to send emails.\n\nErrors:\n${errors.join('\n')}\n\nPlease check your email configuration in .env.local`)
+      }
+      
+    } catch (error) {
+      console.error('Error sending emails:', error)
+      alert('Failed to send emails. Please try again.')
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   return (
     <div className="p-6 h-full">
       {/* Header */}
@@ -595,9 +637,13 @@ Equipo YOUR LEGEND`
 
             {selectedStage && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>{filteredProspects.length}</strong> prospects found in {STAGE_LABELS[selectedStage]}
-                </p>
+                {isLoading ? (
+                  <p className="text-sm text-blue-800">Loading prospects...</p>
+                ) : (
+                  <p className="text-sm text-blue-800">
+                    <strong>{filteredProspects.length}</strong> prospects found in {STAGE_LABELS[selectedStage]}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -742,11 +788,21 @@ Equipo YOUR LEGEND`
               </Button>
 
               <Button
-                disabled={!emailSubject || !emailContent || selectedProspects.length === 0}
+                onClick={handleSendEmails}
+                disabled={!emailSubject || !emailContent || selectedProspects.length === 0 || isSending}
                 className="flex items-center space-x-2"
               >
-                <Send className="h-4 w-4" />
-                <span>Send to {selectedProspects.length} Recipients</span>
+                {isSending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                <span>
+                  {isSending 
+                    ? `Sending...`
+                    : `Send to ${selectedProspects.length} Recipients`
+                  }
+                </span>
               </Button>
             </div>
           </div>
