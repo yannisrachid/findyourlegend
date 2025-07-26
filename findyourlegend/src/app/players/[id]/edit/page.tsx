@@ -213,7 +213,7 @@ export default function EditPlayerPage() {
       {player && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex items-center space-x-6">
-            <PlayerPhotoPreview key={`${player.id}-${formData.photo}-edit`} player={{...player, photo: formData.photo}} size="large" />
+            <PlayerPhotoPreview key={`${player.id}-${formData.photo}-edit`} player={{...player, photo: formData.photo || null}} size="large" />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Current Photo Preview</h3>
               <p className="text-sm text-gray-600">This is how the photo will appear with your current settings</p>

@@ -46,6 +46,9 @@ function processWikipediaUrl(url: string): string[] {
     }
     
     const mdPath = generateMD5Path(filename)
+    const normalized = filename.replace(/\s/g, '_')
+    const firstChar = normalized.charAt(0).toLowerCase()
+    const secondChar = normalized.charAt(1).toLowerCase()
     
     // Try different size variations and paths
     const sizes = ['200px', '150px', '120px', '100px', '80px', '64px']

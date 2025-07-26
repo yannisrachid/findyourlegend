@@ -142,7 +142,7 @@ export default function ContactsPage() {
           return `${contact.club.name} (${contact.club.city})`
         }
         if (contact.player) {
-          return `${contact.player.firstName} ${contact.player.lastName} (${contact.player.club.name})`
+          return `${contact.player.firstName} ${contact.player.lastName} (${(contact.player as any)?.club?.name || 'No club'})`
         }
         return 'N/A'
       },

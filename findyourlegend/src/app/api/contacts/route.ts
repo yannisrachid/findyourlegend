@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     ])
 
     const response: PaginatedResponse<ContactWithRelations> = {
-      data: contacts,
+      data: contacts as ContactWithRelations[],
       total,
       page,
       pageSize,

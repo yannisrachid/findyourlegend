@@ -152,7 +152,7 @@ export default function EditClubPage() {
       {club && (
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
           <div className="flex items-center space-x-6">
-            <ClubLogo key={`${club.id}-${formData.logo}-edit`} club={{...club, logo: formData.logo}} size="lg" />
+            <ClubLogo key={`${club.id}-${formData.logo}-edit`} club={{...club, logo: formData.logo || null}} size="lg" />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Current Logo Preview</h3>
               <p className="text-sm text-gray-600">This is how the logo will appear with your current settings</p>

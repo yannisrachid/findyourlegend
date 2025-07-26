@@ -234,7 +234,7 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
                 <option value="">Select a player</option>
                 {players.map((player) => (
                   <option key={player.id} value={player.id}>
-                    {player.firstName} {player.lastName} ({player.club.name})
+                    {player.firstName} {player.lastName} ({(player as any).club.name})
                   </option>
                 ))}
               </Select>

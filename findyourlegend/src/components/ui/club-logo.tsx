@@ -175,7 +175,7 @@ export function ClubLogoSimple({
 }) {
   return (
     <ClubLogo 
-      club={{ id: '', name: clubName, logo: logoUrl }}
+      club={{ id: '', name: clubName, logo: logoUrl || null }}
       size={size}
       className={className}
     />

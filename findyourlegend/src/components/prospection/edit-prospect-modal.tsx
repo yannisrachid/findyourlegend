@@ -98,11 +98,11 @@ export function EditProspectModal({ isOpen, prospect, onClose, onSave }: EditPro
                   <div className="mt-2">
                     {isPlayerContact ? (
                       <p className="text-sm text-gray-500">
-                        Player: {displayEntity.firstName} {displayEntity.lastName} • {displayEntity.position}
+                        Player: {(displayEntity as any).firstName} {(displayEntity as any).lastName} • {(displayEntity as any).position}
                       </p>
                     ) : (
                       <p className="text-sm text-gray-500">
-                        Club: {displayEntity.name} • {displayEntity.city}, {displayEntity.country}
+                        Club: {(displayEntity as any).name} • {(displayEntity as any).city}, {(displayEntity as any).country}
                       </p>
                     )}
                   </div>

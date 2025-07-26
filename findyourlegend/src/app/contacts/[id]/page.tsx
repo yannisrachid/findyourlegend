@@ -333,7 +333,7 @@ export default function ContactDetailPage() {
                 <p>Nationality: {contact.player.nationality}</p>
                 {contact.player.email && <p>Email: {contact.player.email}</p>}
                 {contact.player.phone && <p>Phone: {contact.player.phone}</p>}
-                {contact.player.club && <p>Club: {contact.player.club.name}</p>}
+                {(contact.player as any)?.club && <p>Club: {(contact.player as any).club.name}</p>}
               </div>
             </div>
           </div>

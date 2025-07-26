@@ -341,7 +341,7 @@ export default function EditContactPage() {
                   <option value="">Select a player</option>
                   {players.map((player) => (
                     <option key={player.id} value={player.id}>
-                      {player.firstName} {player.lastName} ({player.club.name})
+                      {player.firstName} {player.lastName} ({(player as any).club?.name || 'No club'})
                     </option>
                   ))}
                 </Select>

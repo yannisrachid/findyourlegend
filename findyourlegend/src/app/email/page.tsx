@@ -447,7 +447,7 @@ Equipo YOUR LEGEND`
     let subject = emailSubject
 
     // Replace placeholders with actual data
-    const replacements = {
+    const replacements: Record<string, string> = {
       '{{YOUR_NAME}}': 'Matteo Rigoni', // Your actual name
       '{{CONTACT_NAME}}': `${prospect.contact.firstName} ${prospect.contact.lastName}`,
       '{{CONTACT_FIRST_NAME}}': prospect.contact.firstName,
@@ -686,8 +686,8 @@ Equipo YOUR LEGEND`
                         {displayEntity && (
                           <p className="text-xs text-gray-400">
                             {isPlayerContact 
-                              ? `Player: ${displayEntity.firstName} ${displayEntity.lastName}`
-                              : `Club: ${displayEntity.name}`
+                              ? `Player: ${(displayEntity as any).firstName} ${(displayEntity as any).lastName}`
+                              : `Club: ${(displayEntity as any).name}`
                             }
                           </p>
                         )}

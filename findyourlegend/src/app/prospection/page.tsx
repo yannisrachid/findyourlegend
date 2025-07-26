@@ -98,15 +98,15 @@ const ProspectCard = ({
         <div className="mb-3 p-2 bg-gray-50 rounded">
           <p className="text-sm font-medium text-gray-700">
             {isPlayerContact 
-              ? `Player: ${displayEntity.firstName} ${displayEntity.lastName}`
-              : `Club: ${displayEntity.name}`
+              ? `Player: ${(displayEntity as any).firstName} ${(displayEntity as any).lastName}`
+              : `Club: ${(displayEntity as any).name}`
             }
           </p>
           {isPlayerContact && (
-            <p className="text-xs text-gray-500">{displayEntity.position}</p>
+            <p className="text-xs text-gray-500">{(displayEntity as any).position}</p>
           )}
           {!isPlayerContact && (
-            <p className="text-xs text-gray-500">{displayEntity.city}, {displayEntity.country}</p>
+            <p className="text-xs text-gray-500">{(displayEntity as any).city}, {(displayEntity as any).country}</p>
           )}
         </div>
       )}
@@ -146,7 +146,7 @@ const ProspectColumn = ({
   onEdit,
   onDelete,
 }: {
-  column: typeof COLUMNS[0]
+  column: typeof COLUMNS[number]
   prospects: Prospect[]
   onDrop: (e: React.DragEvent, stage: ProspectStage) => void
   onDragOver: (e: React.DragEvent) => void
