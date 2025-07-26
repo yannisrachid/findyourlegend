@@ -31,15 +31,15 @@ function transformProspectData(rawData: any) {
 }
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 // GET /api/prospects/[id] - Fetch single prospect
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Use raw SQL workaround
     const prospectResult = await prisma.$queryRaw`
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT /api/prospects/[id] - Update prospect
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { stage, notes } = body
 
@@ -140,7 +140,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/prospects/[id] - Delete prospect
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Check if prospect exists using raw SQL
     const existingResult = await prisma.$queryRaw`SELECT id FROM prospects WHERE id = ${id}`
