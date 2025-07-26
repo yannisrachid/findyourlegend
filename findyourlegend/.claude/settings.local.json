@@ -12,7 +12,8 @@
       "Bash(npx prisma generate:*)",
       "Bash(sqlite3:*)",
       "Bash(mv:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
