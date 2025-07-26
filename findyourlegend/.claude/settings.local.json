@@ -10,7 +10,9 @@
       "Bash(npx prisma migrate dev:*)",
       "Bash(cp:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(mv:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

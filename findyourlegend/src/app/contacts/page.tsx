@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/ui/data-table'
 import { ContactModal } from '@/components/contacts/contact-modal'
+import { CsvImportModal } from '@/components/contacts/csv-import-modal'
 import { ContactWithRelations, PaginatedResponse } from '@/types'
-import { Plus, Edit, Trash2, User, Building2, Download } from 'lucide-react'
+import { Plus, Edit, Trash2, User, Building2, Download, Upload } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { exportContactsToExcel } from '@/lib/excel-export'
 
@@ -23,6 +24,7 @@ export default function ContactsPage() {
   })
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedContact, setSelectedContact] = useState<ContactWithRelations | null>(null)
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false)
 
   const fetchContacts = useCallback(async (page?: number, pageSize?: number, search?: string) => {
     setLoading(true)
@@ -190,6 +192,10 @@ export default function ContactsPage() {
             <Download className="h-4 w-4 mr-2" />
             Export Excel
           </Button>
+          <Button variant="outline" onClick={() => setIsCsvModalOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Add data from CSV
+          </Button>
           <Button onClick={() => setIsModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Contact
@@ -213,6 +219,15 @@ export default function ContactsPage() {
         onClose={handleCloseModal}
         onSave={handleSave}
         contact={selectedContact}
+      />
+
+      <CsvImportModal
+        isOpen={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+        onImportSuccess={() => {
+          setIsCsvModalOpen(false)
+          fetchContacts() // Refresh the contacts list
+        }}
       />
     </div>
   )
