@@ -20,9 +20,11 @@ interface ContactModalProps {
   onClose: () => void
   onSave: () => void
   contact?: ContactWithRelations | null
+  defaultClubId?: string
+  defaultPlayerId?: string
 }
 
-export function ContactModal({ isOpen, onClose, onSave, contact }: ContactModalProps) {
+export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, defaultPlayerId }: ContactModalProps) {
   const [formData, setFormData] = useState<ContactFormData>({
     firstName: '',
     lastName: '',
@@ -65,13 +67,13 @@ export function ContactModal({ isOpen, onClose, onSave, contact }: ContactModalP
         role: '',
         email: '',
         phone: '',
-        type: 'CLUB',
-        clubId: '',
-        playerId: '',
+        type: defaultPlayerId ? 'PLAYER' : 'CLUB',
+        clubId: defaultClubId || '',
+        playerId: defaultPlayerId || '',
         notes: '',
       })
     }
-  }, [contact, isOpen])
+  }, [contact, isOpen, defaultClubId, defaultPlayerId])
 
   const fetchClubs = async () => {
     try {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { ContactModal } from '@/components/contacts/contact-modal'
 import { PlayerWithRelations, ContactWithRelations } from '@/types'
 import { ArrowLeft, Users, Phone, Mail, Globe, MapPin, Edit, Trash2, Plus, Building2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
@@ -52,6 +53,7 @@ export default function PlayerDetailPage() {
   const [contacts, setContacts] = useState<ContactWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchPlayerDetails = async () => {
@@ -105,6 +107,28 @@ export default function PlayerDetailPage() {
   const handleClubAction = () => {
     if (player?.club) {
       router.push(`/clubs/${player.club.id}`)
+    }
+  }
+
+  const handleAddContact = () => {
+    setIsContactModalOpen(true)
+  }
+
+  const handleCloseContactModal = () => {
+    setIsContactModalOpen(false)
+  }
+
+  const handleSaveContact = async () => {
+    setIsContactModalOpen(false)
+    // Refresh contacts
+    try {
+      const contactsResponse = await fetch(`/api/contacts?playerId=${playerId}&pageSize=100`)
+      if (contactsResponse.ok) {
+        const contactsData = await contactsResponse.json()
+        setContacts(contactsData.data || [])
+      }
+    } catch (error) {
+      console.error('Error refreshing contacts:', error)
     }
   }
 
@@ -307,7 +331,7 @@ export default function PlayerDetailPage() {
               <Phone className="h-5 w-5 text-green-500" />
               <h3 className="text-lg font-semibold text-gray-900">Contacts ({contacts.length})</h3>
             </div>
-            <Button size="sm" onClick={() => router.push(`/contacts/new?playerId=${playerId}`)}>
+            <Button size="sm" onClick={handleAddContact}>
               <Plus className="h-4 w-4 mr-2" />
               Add Contact
             </Button>
@@ -351,6 +375,14 @@ export default function PlayerDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={isContactModalOpen}
+        onClose={handleCloseContactModal}
+        onSave={handleSaveContact}
+        defaultPlayerId={playerId}
+      />
     </div>
   )
 }

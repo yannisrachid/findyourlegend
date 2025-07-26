@@ -77,3 +77,54 @@ export interface PaginatedResponse<T> {
   pageSize: number
   totalPages: number
 }
+
+export type ProspectStage = 'prequalification' | 'relance1' | 'relance2' | 'relance3'
+
+export interface Prospect {
+  id: string
+  contactId: string
+  contact: ContactWithRelations
+  stage: ProspectStage
+  createdAt: string
+  updatedAt: string
+  notes?: string
+}
+
+export interface ProspectFormData {
+  contactId: string
+  stage: ProspectStage
+  notes?: string
+}
+
+export interface EmailTemplate {
+  id: string
+  name: string
+  subject: string
+  content: string
+  variables: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface EmailCampaign {
+  id: string
+  name: string
+  subject: string
+  content: string
+  stage: ProspectStage
+  recipients: Prospect[]
+  status: 'draft' | 'sent' | 'scheduled'
+  createdAt: string
+  updatedAt: string
+  sentAt?: string
+}
+
+export interface EmailCredentials {
+  id: string
+  email: string
+  provider: 'gmail' | 'outlook' | 'smtp'
+  smtpHost?: string
+  smtpPort?: number
+  isDefault: boolean
+  createdAt: string
+}

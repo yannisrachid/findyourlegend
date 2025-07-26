@@ -7,6 +7,8 @@ import { ClubWithRelations, PlayerWithRelations, ContactWithRelations } from '@/
 import { ArrowLeft, Building2, Users, Phone, Mail, Globe, MapPin, Edit, Trash2, Plus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { ClubLogo } from '@/components/ui/club-logo'
+import { PlayerModal } from '@/components/players/player-modal'
+import { ContactModal } from '@/components/contacts/contact-modal'
 
 export default function ClubDetailPage() {
   const params = useParams()
@@ -18,6 +20,8 @@ export default function ClubDetailPage() {
   const [contacts, setContacts] = useState<ContactWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false)
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchClubDetails = async () => {
@@ -77,6 +81,42 @@ export default function ClubDetailPage() {
 
   const handleContactAction = (contactId: string) => {
     router.push(`/contacts/${contactId}`)
+  }
+
+  const handlePlayerSave = () => {
+    setIsPlayerModalOpen(false)
+    // Refetch players for this club
+    fetchPlayers()
+  }
+
+  const handleContactSave = () => {
+    setIsContactModalOpen(false)
+    // Refetch contacts for this club
+    fetchContacts()
+  }
+
+  const fetchPlayers = async () => {
+    try {
+      const playersResponse = await fetch(`/api/players?clubId=${clubId}&pageSize=100`)
+      if (playersResponse.ok) {
+        const playersData = await playersResponse.json()
+        setPlayers(playersData.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching players:', error)
+    }
+  }
+
+  const fetchContacts = async () => {
+    try {
+      const contactsResponse = await fetch(`/api/contacts?clubId=${clubId}&pageSize=100`)
+      if (contactsResponse.ok) {
+        const contactsData = await contactsResponse.json()
+        setContacts(contactsData.data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    }
   }
 
   if (loading) {
@@ -226,7 +266,7 @@ export default function ClubDetailPage() {
               <Users className="h-5 w-5 text-blue-500" />
               <h3 className="text-lg font-semibold text-gray-900">Players ({players.length})</h3>
             </div>
-            <Button size="sm" onClick={() => router.push(`/players/new?clubId=${clubId}`)}>
+            <Button size="sm" onClick={() => setIsPlayerModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Player
             </Button>
@@ -278,7 +318,7 @@ export default function ClubDetailPage() {
               <Phone className="h-5 w-5 text-green-500" />
               <h3 className="text-lg font-semibold text-gray-900">Contacts ({contacts.length})</h3>
             </div>
-            <Button size="sm" onClick={() => router.push(`/contacts/new?clubId=${clubId}`)}>
+            <Button size="sm" onClick={() => setIsContactModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Contact
             </Button>
@@ -321,6 +361,22 @@ export default function ClubDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Player Modal */}
+      <PlayerModal
+        isOpen={isPlayerModalOpen}
+        onClose={() => setIsPlayerModalOpen(false)}
+        onSave={handlePlayerSave}
+        defaultClubId={clubId}
+      />
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={isContactModalOpen}
+        onClose={() => setIsContactModalOpen(false)}
+        onSave={handleContactSave}
+        defaultClubId={clubId}
+      />
     </div>
   )
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
+import { AuthProvider } from "@/contexts/auth-context";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,14 +22,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} antialiased`}>
-        <div className="flex h-screen bg-gray-100">
-          <Sidebar />
-          <main className="flex-1 overflow-hidden">
-            <div className="h-full overflow-auto">
-              {children}
+        <AuthProvider>
+          <ProtectedRoute>
+            <div className="flex h-screen bg-gray-100">
+              <Sidebar />
+              <main className="flex-1 overflow-hidden">
+                <div className="h-full overflow-auto">
+                  {children}
+                </div>
+              </main>
             </div>
-          </main>
-        </div>
+          </ProtectedRoute>
+        </AuthProvider>
       </body>
     </html>
   );
