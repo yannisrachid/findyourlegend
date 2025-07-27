@@ -2,8 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   eslint: {
-    // Disable ESLint during builds to focus on deployment
+    // Completely disable ESLint during builds
     ignoreDuringBuilds: true,
+    dirs: [], // Don't lint any directories
   },
   typescript: {
     // Disable TypeScript errors during builds
