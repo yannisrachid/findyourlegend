@@ -95,42 +95,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Prospect not found' }, { status: 404 })
     }
 
-    // Update prospect using raw SQL
-    await prisma.$executeRaw`
-      UPDATE prospects 
-      SET stage = ${stage}, notes = ${notes || ''}, updatedAt = now()
-      WHERE id = ${id}
-    `
+    // Update prospect using proper Prisma
+    const updatedProspect = await prisma.prospect.update({
+      where: { id },
+      data: {
+        stage,
+        notes: notes || undefined,
+      },
+      include: {
+        contact: {
+          include: {
+            club: true,
+            player: {
+              include: {
+                club: true
+              }
+            }
+          }
+        }
+      }
+    })
 
-    // Fetch updated prospect
-    const prospectResult = await prisma.$queryRaw`
-      SELECT 
-        p.*,
-        c.id as contact_id,
-        c.firstName as contact_firstName,
-        c.lastName as contact_lastName,
-        c.role as contact_role,
-        c.email as contact_email,
-        c.phone as contact_phone,
-        c.type as contact_type,
-        c.clubId as contact_clubId,
-        c.playerId as contact_playerId,
-        c.notes as contact_notes,
-        c.createdAt as contact_createdAt,
-        c.updatedAt as contact_updatedAt
-      FROM prospects p
-      JOIN contacts c ON p.contactId = c.id
-      WHERE p.id = ${id}
-    `
-    
-    const prospect = Array.isArray(prospectResult) ? prospectResult[0] : null
-    
-    if (!prospect) {
-      return NextResponse.json({ error: 'Prospect not found after update' }, { status: 404 })
-    }
-
-    const transformedProspect = transformProspectData(prospect)
-    return NextResponse.json(transformedProspect)
+    return NextResponse.json(updatedProspect)
   } catch (error) {
     console.error('Error updating prospect:', error)
     return NextResponse.json({ error: 'Failed to update prospect' }, { status: 500 })

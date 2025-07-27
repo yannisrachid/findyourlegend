@@ -101,67 +101,30 @@ export async function GET(request: NextRequest) {
         }
       : {}
 
-    // Use raw SQL workaround for now with club and player relations
-    const prospects = await prisma.$queryRaw`
-      SELECT 
-        p.*,
-        c.id as contact_id,
-        c.firstName as contact_firstName,
-        c.lastName as contact_lastName,
-        c.role as contact_role,
-        c.email as contact_email,
-        c.phone as contact_phone,
-        c.type as contact_type,
-        c.clubId as contact_clubId,
-        c.playerId as contact_playerId,
-        c.notes as contact_notes,
-        c.createdAt as contact_createdAt,
-        c.updatedAt as contact_updatedAt,
-        club.id as club_id,
-        club.name as club_name,
-        club.city as club_city,
-        club.country as club_country,
-        club.logo as club_logo,
-        club.email as club_email,
-        club.phone as club_phone,
-        club.website as club_website,
-        club.createdAt as club_createdAt,
-        club.updatedAt as club_updatedAt,
-        player.id as player_id,
-        player.firstName as player_firstName,
-        player.lastName as player_lastName,
-        player.age as player_age,
-        player.position as player_position,
-        player.nationality as player_nationality,
-        player.photo as player_photo,
-        player.email as player_email,
-        player.phone as player_phone,
-        player.createdAt as player_createdAt,
-        player.updatedAt as player_updatedAt,
-        player_club.id as player_club_id,
-        player_club.name as player_club_name,
-        player_club.city as player_club_city,
-        player_club.country as player_club_country
-      FROM prospects p
-      JOIN contacts c ON p.contactId = c.id
-      LEFT JOIN clubs club ON c.clubId = club.id
-      LEFT JOIN players player ON c.playerId = player.id
-      LEFT JOIN clubs player_club ON player.clubId = player_club.id
-      ORDER BY p.updatedAt DESC
-      LIMIT ${pageSize} OFFSET ${skip}
-    `
+    // Use proper Prisma query with relations
+    const prospects = await prisma.prospect.findMany({
+      skip,
+      take: pageSize,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        contact: {
+          include: {
+            club: true,
+            player: {
+              include: {
+                club: true
+              }
+            }
+          }
+        }
+      }
+    })
 
-    // Get total count using raw SQL
-    const totalResult = await prisma.$queryRaw`SELECT COUNT(*) as count FROM prospects`
-    const total = Array.isArray(totalResult) ? Number((totalResult[0] as any).count) : 0
-
-    // Transform the raw data to expected format
-    const transformedProspects = Array.isArray(prospects) 
-      ? prospects.map(transformProspectData) 
-      : []
+    // Get total count
+    const total = await prisma.prospect.count()
 
     return NextResponse.json({
-      data: transformedProspects,
+      data: prospects,
       total,
       page,
       pageSize,
@@ -179,12 +142,19 @@ export async function GET(request: NextRequest) {
 
 // POST /api/prospects - Create new prospect
 export async function POST(request: NextRequest) {
+  let contactId: string = ''
+  let stage: string = ''
+  let notes: string = ''
+  
   try {
     console.log('POST /api/prospects - Starting prospect creation...')
     const body: ProspectFormData = await request.json()
     console.log('Received request body:', body)
     
-    const { contactId, stage, notes } = body
+    const extracted = body
+    contactId = extracted.contactId || ''
+    stage = extracted.stage || ''
+    notes = extracted.notes || ''
     console.log('Extracted data - contactId:', contactId, 'stage:', stage, 'notes:', notes)
 
     if (!contactId || !stage) {
@@ -198,40 +168,28 @@ export async function POST(request: NextRequest) {
     // Skip duplicate check for now to test creation
     console.log('Creating prospect for contactId:', contactId, 'stage:', stage)
 
-    // Use raw SQL as temporary workaround until server restart
-    const prospectId = `prospect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    await prisma.$executeRaw`
-      INSERT INTO prospects (id, contactId, stage, notes, createdAt, updatedAt)
-      VALUES (${prospectId}, ${contactId}, ${stage}, ${notes || ''}, now(), now())
-    `
+    // Create prospect using proper Prisma
+    const createdProspect = await prisma.prospect.create({
+      data: {
+        contactId,
+        stage,
+        notes: notes || undefined,
+      },
+      include: {
+        contact: {
+          include: {
+            club: true,
+            player: {
+              include: {
+                club: true
+              }
+            }
+          }
+        }
+      }
+    })
 
-    // Fetch the created prospect with relations using raw SQL
-    const prospect = await prisma.$queryRaw`
-      SELECT 
-        p.*,
-        c.id as contact_id,
-        c.firstName as contact_firstName,
-        c.lastName as contact_lastName,
-        c.role as contact_role,
-        c.email as contact_email,
-        c.phone as contact_phone,
-        c.type as contact_type,
-        c.clubId as contact_clubId,
-        c.playerId as contact_playerId,
-        c.notes as contact_notes,
-        c.createdAt as contact_createdAt,
-        c.updatedAt as contact_updatedAt
-      FROM prospects p
-      JOIN contacts c ON p.contactId = c.id
-      WHERE p.id = ${prospectId}
-    `
-
-    // Return the created prospect data
-    const createdProspect = Array.isArray(prospect) ? prospect[0] : prospect
-    const transformedProspect = transformProspectData(createdProspect)
-
-    return NextResponse.json(transformedProspect, { status: 201 })
+    return NextResponse.json(createdProspect, { status: 201 })
   } catch (error) {
     console.error('Error creating prospect:', error)
     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')

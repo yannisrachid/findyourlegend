@@ -680,11 +680,14 @@ Equipo YOUR LEGEND`
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">
-                          {prospect.contact.firstName} {prospect.contact.lastName}
+                          {prospect.contact.firstName && prospect.contact.lastName 
+                            ? `${prospect.contact.firstName} ${prospect.contact.lastName}`
+                            : prospect.contact.email || 'Contact Name Missing'
+                          }
                         </p>
-                        <p className="text-sm text-gray-500">{prospect.contact.role}</p>
+                        <p className="text-sm text-gray-500">{prospect.contact.role || 'No role specified'}</p>
                         {displayEntity && (
-                          <p className="text-xs text-gray-400">
+                          <p className="text-sm font-medium text-blue-600">
                             {isPlayerContact 
                               ? `Player: ${(displayEntity as any).firstName} ${(displayEntity as any).lastName}`
                               : `Club: ${(displayEntity as any).name}`
