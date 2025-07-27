@@ -401,7 +401,8 @@ export async function GET(request: NextRequest) {
     const citiesNeedingCoordinates = citiesArray.filter(city => !city.latitude || !city.longitude)
     
     // Skip geocoding during build process to avoid timeouts
-    const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL
+    // Build time is when we're in production but no runtime environment is available
+    const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL && !request.url.includes('localhost')
     
     if (citiesNeedingCoordinates.length > 0 && !isBuildTime) {
       console.log(`Cities API: Auto-geocoding ${citiesNeedingCoordinates.length} cities without coordinates...`)
