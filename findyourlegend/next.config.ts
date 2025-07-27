@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
     // Disable TypeScript errors during builds
     ignoreBuildErrors: true,
   },
+  // Prevent static generation of dynamic API routes during build
+  trailingSlash: false,
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
   images: {
     remotePatterns: [
       {

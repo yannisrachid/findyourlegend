@@ -8,6 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    
     const player = await prisma.player.findUnique({
       where: { id },
       include: {
@@ -41,6 +42,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+    
     const body: PlayerFormData = await request.json()
 
     const player = await prisma.player.update({
