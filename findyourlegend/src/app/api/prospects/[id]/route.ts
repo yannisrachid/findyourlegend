@@ -98,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Update prospect using raw SQL
     await prisma.$executeRaw`
       UPDATE prospects 
-      SET stage = ${stage}, notes = ${notes || ''}, updatedAt = datetime('now')
+      SET stage = ${stage}, notes = ${notes || ''}, updatedAt = now()
       WHERE id = ${id}
     `
 

@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     
     await prisma.$executeRaw`
       INSERT INTO prospects (id, contactId, stage, notes, createdAt, updatedAt)
-      VALUES (${prospectId}, ${contactId}, ${stage}, ${notes || ''}, datetime('now'), datetime('now'))
+      VALUES (${prospectId}, ${contactId}, ${stage}, ${notes || ''}, now(), now())
     `
 
     // Fetch the created prospect with relations using raw SQL
