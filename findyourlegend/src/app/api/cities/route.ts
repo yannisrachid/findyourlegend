@@ -331,21 +331,41 @@ export async function GET(request: NextRequest) {
   try {
     console.log('Cities API: Fetching clubs data for map...')
     
+    // Handle build-time environment gracefully
+    if (!process.env.DATABASE_URL) {
+      console.log('Cities API: No database URL available (build time), returning empty response')
+      return NextResponse.json({
+        cities: [],
+        total: 0,
+        unmappable: []
+      })
+    }
+    
     // Get all clubs grouped by city and country
-    const clubs = await prisma.club.findMany({
-      select: {
-        id: true,
-        name: true,
-        city: true,
-        country: true,
-        logo: true,
-      },
-      orderBy: [
-        { country: 'asc' },
-        { city: 'asc' },
-        { name: 'asc' }
-      ]
-    })
+    let clubs = []
+    try {
+      clubs = await prisma.club.findMany({
+        select: {
+          id: true,
+          name: true,
+          city: true,
+          country: true,
+          logo: true,
+        },
+        orderBy: [
+          { country: 'asc' },
+          { city: 'asc' },
+          { name: 'asc' }
+        ]
+      })
+    } catch (dbError) {
+      console.log('Cities API: Database connection failed (likely build time), returning empty response')
+      return NextResponse.json({
+        cities: [],
+        total: 0,
+        unmappable: []
+      })
+    }
     
     console.log(`Cities API: Found ${clubs.length} clubs in database`)
 
@@ -376,28 +396,37 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Second pass: auto-geocode cities without coordinates
+    // Second pass: auto-geocode cities without coordinates (skip during build)
     const citiesArray = Array.from(cityMap.values())
     const citiesNeedingCoordinates = citiesArray.filter(city => !city.latitude || !city.longitude)
     
-    if (citiesNeedingCoordinates.length > 0) {
+    // Skip geocoding during build process to avoid timeouts
+    const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL_URL
+    
+    if (citiesNeedingCoordinates.length > 0 && !isBuildTime) {
       console.log(`Cities API: Auto-geocoding ${citiesNeedingCoordinates.length} cities without coordinates...`)
       
       // Process geocoding requests with a small delay to respect rate limits
       for (const city of citiesNeedingCoordinates) {
-        const coordinates = await getCoordinatesFromGeocoding(city.city, city.country)
-        
-        if (coordinates) {
-          city.latitude = coordinates.lat
-          city.longitude = coordinates.lng
-          console.log(`Cities API: Successfully geocoded ${city.city}, ${city.country}`)
-        } else {
-          console.log(`Cities API: Failed to geocode ${city.city}, ${city.country}`)
+        try {
+          const coordinates = await getCoordinatesFromGeocoding(city.city, city.country)
+          
+          if (coordinates) {
+            city.latitude = coordinates.lat
+            city.longitude = coordinates.lng
+            console.log(`Cities API: Successfully geocoded ${city.city}, ${city.country}`)
+          } else {
+            console.log(`Cities API: Failed to geocode ${city.city}, ${city.country}`)
+          }
+          
+          // Small delay to respect Nominatim rate limits (1 request per second)
+          await new Promise(resolve => setTimeout(resolve, 1100))
+        } catch (error) {
+          console.log(`Cities API: Geocoding error for ${city.city}, ${city.country}:`, error)
         }
-        
-        // Small delay to respect Nominatim rate limits (1 request per second)
-        await new Promise(resolve => setTimeout(resolve, 1100))
       }
+    } else if (citiesNeedingCoordinates.length > 0) {
+      console.log(`Cities API: Skipping geocoding during build time for ${citiesNeedingCoordinates.length} cities`)
     }
 
     const cities = Array.from(cityMap.values())
