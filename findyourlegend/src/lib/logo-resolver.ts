@@ -67,7 +67,7 @@ export async function resolveWikipediaLogo(originalUrl: string): Promise<LogoRes
         result.method = 'Direct Commons'
         return result
       }
-    } catch (error) {
+    } catch {
       // Continue to next URL
     }
   }
@@ -97,7 +97,7 @@ export async function resolveWikipediaLogo(originalUrl: string): Promise<LogoRes
           result.method = 'Filename variation'
           return result
         }
-      } catch (error) {
+      } catch {
         // Continue to next URL
       }
     }
@@ -114,7 +114,7 @@ export async function resolveWikipediaLogo(originalUrl: string): Promise<LogoRes
       result.method = 'Proxy service'
       return result
     }
-  } catch (error) {
+  } catch {
     // Proxy failed
   }
 
