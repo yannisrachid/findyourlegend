@@ -97,7 +97,7 @@ export function exportContactsToExcel(contacts: ContactWithRelations[]) {
       : contact.player 
         ? `${contact.player.firstName} ${contact.player.lastName} (Player)`
         : 'N/A',
-    'Related Club': contact.club?.name || (contact.player && 'club' in contact.player ? contact.player.club.name : '') || '',
+    'Related Club': contact.club?.name || (contact.player && 'club' in contact.player ? (contact.player as any).club.name : '') || '',
     Email: contact.email || '',
     Phone: contact.phone || '',
     Notes: contact.notes || '',

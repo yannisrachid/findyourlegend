@@ -46,8 +46,8 @@ export async function resolveWikipediaLogo(originalUrl: string): Promise<LogoRes
         return result
       }
     }
-  } catch (error) {
-    console.log('Wikipedia API failed:', error)
+  } catch (_error) {
+    console.log('Wikipedia API failed:', _error)
   }
 
   // Strategy 2: Try direct Wikimedia Commons URLs
@@ -97,7 +97,7 @@ export async function resolveWikipediaLogo(originalUrl: string): Promise<LogoRes
           result.method = 'Filename variation'
           return result
         }
-      } catch {
+      } catch (_) {
         // Continue to next URL
       }
     }
@@ -114,7 +114,7 @@ export async function resolveWikipediaLogo(originalUrl: string): Promise<LogoRes
       result.method = 'Proxy service'
       return result
     }
-  } catch {
+  } catch (_) {
     // Proxy failed
   }
 
