@@ -180,10 +180,15 @@ export async function GET(request: NextRequest) {
 // POST /api/prospects - Create new prospect
 export async function POST(request: NextRequest) {
   try {
+    console.log('POST /api/prospects - Starting prospect creation...')
     const body: ProspectFormData = await request.json()
+    console.log('Received request body:', body)
+    
     const { contactId, stage, notes } = body
+    console.log('Extracted data - contactId:', contactId, 'stage:', stage, 'notes:', notes)
 
     if (!contactId || !stage) {
+      console.log('Validation failed - missing contactId or stage')
       return NextResponse.json(
         { error: 'Contact ID and stage are required' },
         { status: 400 }
@@ -230,9 +235,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating prospect:', error)
     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
+    
+    // More detailed error response
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorDetails = error instanceof Error && error.stack ? error.stack : 'No additional details'
+    
     return NextResponse.json({ 
       error: 'Failed to create prospect',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: errorMessage,
+      stack: errorDetails,
+      requestData: { contactId, stage, notes }
     }, { status: 500 })
   }
 }
