@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 // Helper function to transform raw SQL data into expected format
 function transformProspectData(rawData: any) {
   return {
