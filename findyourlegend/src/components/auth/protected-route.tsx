@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/auth-context'
 import { LoginPage } from './login-page'
+import { Sidebar } from '@/components/layout/sidebar'
 import { ReactNode } from 'react'
 
 interface ProtectedRouteProps {
@@ -28,5 +29,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <LoginPage />
   }
 
-  return <>{children}</>
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar />
+      <main className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto">
+          {children}
+        </div>
+      </main>
+    </div>
+  )
 }
