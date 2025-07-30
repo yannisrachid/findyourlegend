@@ -28,12 +28,12 @@ export async function GET(request: NextRequest) {
     // Add search filters if provided
     if (search) {
       const searchConditions = [
-        { firstName: { contains: search } },
-        { lastName: { contains: search } },
-        { role: { contains: search } },
-        { club: { name: { contains: search } } },
-        { player: { firstName: { contains: search } } },
-        { player: { lastName: { contains: search } } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { role: { contains: search, mode: 'insensitive' } },
+        { club: { name: { contains: search, mode: 'insensitive' } } },
+        { player: { firstName: { contains: search, mode: 'insensitive' } } },
+        { player: { lastName: { contains: search, mode: 'insensitive' } } },
       ]
 
       if (where.clubId || where.playerId) {
@@ -95,6 +95,51 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: ContactFormData = await request.json()
+
+    // Check for duplicate contact based on firstName, lastName, and either clubId or playerId
+    const whereCondition: any = {
+      firstName: {
+        equals: body.firstName,
+        mode: 'insensitive', // Case-insensitive comparison
+      },
+      lastName: {
+        equals: body.lastName,
+        mode: 'insensitive',
+      },
+    }
+
+    // Add club or player constraint
+    if (body.clubId) {
+      whereCondition.clubId = body.clubId
+    } else if (body.playerId) {
+      whereCondition.playerId = body.playerId
+    }
+
+    const existingContact = await prisma.contact.findFirst({
+      where: whereCondition,
+      include: {
+        club: true,
+        player: {
+          include: {
+            club: true,
+          },
+        },
+      },
+    })
+
+    if (existingContact) {
+      let contextName = ''
+      if (existingContact.club) {
+        contextName = `club ${existingContact.club.name}`
+      } else if (existingContact.player) {
+        contextName = `player ${existingContact.player.firstName} ${existingContact.player.lastName}`
+      }
+      
+      return NextResponse.json(
+        { error: `A contact named "${body.firstName} ${body.lastName}" already exists for ${contextName}` },
+        { status: 409 } // Conflict status code
+      )
+    }
 
     const contact = await prisma.contact.create({
       data: body,

@@ -14,9 +14,9 @@ export async function GET(request: NextRequest) {
     const where = search
       ? {
           OR: [
-            { name: { contains: search } },
-            { city: { contains: search } },
-            { country: { contains: search } },
+            { name: { contains: search, mode: 'insensitive' } },
+            { city: { contains: search, mode: 'insensitive' } },
+            { country: { contains: search, mode: 'insensitive' } },
           ],
         }
       : {}
@@ -60,6 +60,31 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: ClubFormData = await request.json()
+
+    // Check for duplicate club (same name, city, and country)
+    const existingClub = await prisma.club.findFirst({
+      where: {
+        name: {
+          equals: body.name,
+          mode: 'insensitive', // Case-insensitive comparison
+        },
+        city: {
+          equals: body.city,
+          mode: 'insensitive',
+        },
+        country: {
+          equals: body.country,
+          mode: 'insensitive',
+        },
+      },
+    })
+
+    if (existingClub) {
+      return NextResponse.json(
+        { error: `A club with the name "${body.name}" already exists in ${body.city}, ${body.country}` },
+        { status: 409 } // Conflict status code
+      )
+    }
 
     const club = await prisma.club.create({
       data: body,

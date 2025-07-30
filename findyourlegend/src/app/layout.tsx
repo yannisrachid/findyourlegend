@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/sidebar";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 
@@ -29,14 +28,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased`}>
         <AuthProvider>
           <ProtectedRoute>
-            <div className="flex h-screen bg-gray-100">
-              <Sidebar />
-              <main className="flex-1 overflow-hidden">
-                <div className="h-full overflow-auto">
-                  {children}
-                </div>
-              </main>
-            </div>
+            {children}
           </ProtectedRoute>
         </AuthProvider>
       </body>

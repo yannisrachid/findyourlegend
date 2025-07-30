@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -39,6 +39,10 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
   const [clubs, setClubs] = useState<Club[]>([])
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [clubSearch, setClubSearch] = useState('')
+  const [showClubDropdown, setShowClubDropdown] = useState(false)
+  const clubDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -73,11 +77,38 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
         notes: '',
       })
     }
-  }, [contact, isOpen, defaultClubId, defaultPlayerId])
+    setError('') // Clear error when modal opens/closes
+    setShowClubDropdown(false)
+    
+    // Set club search text
+    if (contact && contact.clubId) {
+      const contactClub = clubs.find(c => c.id === contact.clubId)
+      setClubSearch(contactClub ? `${contactClub.name} - ${contactClub.city}` : '')
+    } else if (defaultClubId) {
+      const defaultClub = clubs.find(c => c.id === defaultClubId)
+      setClubSearch(defaultClub ? `${defaultClub.name} - ${defaultClub.city}` : '')
+    } else {
+      setClubSearch('')
+    }
+  }, [contact, isOpen, defaultClubId, defaultPlayerId, clubs])
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (clubDropdownRef.current && !clubDropdownRef.current.contains(event.target as Node)) {
+        setShowClubDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const fetchClubs = async () => {
     try {
-      const response = await fetch('/api/clubs?pageSize=100')
+      const response = await fetch('/api/clubs?pageSize=1000') // Fetch more clubs
       const data = await response.json()
       setClubs(data.data)
     } catch (error) {
@@ -98,6 +129,7 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
     try {
       const url = contact ? `/api/contacts/${contact.id}` : '/api/contacts'
@@ -109,8 +141,6 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
         playerId: formData.type === 'PLAYER' ? formData.playerId : undefined,
       }
 
-      console.log('Submitting contact data:', contactData)
-
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -119,16 +149,13 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
 
       if (response.ok) {
         const result = await response.json()
-        console.log('Contact saved successfully:', result)
         onSave()
       } else {
-        const errorData = await response.text()
-        console.error('Server error:', response.status, errorData)
-        alert(`Error: ${response.status} - ${errorData}`)
+        const errorData = await response.json()
+        setError(errorData.error || `Error: ${response.status}`)
       }
     } catch (error) {
-      console.error('Network error:', error)
-      alert(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setError(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
     setLoading(false)
@@ -137,6 +164,24 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
   const handleInputChange = (field: keyof ContactFormData, value: string | ContactType) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
+
+  const handleClubSearch = (value: string) => {
+    setClubSearch(value)
+    setShowClubDropdown(true)
+    if (!value) {
+      setFormData(prev => ({ ...prev, clubId: '' }))
+    }
+  }
+
+  const handleClubSelect = (club: Club) => {
+    setFormData(prev => ({ ...prev, clubId: club.id }))
+    setClubSearch(`${club.name} - ${club.city}`)
+    setShowClubDropdown(false)
+  }
+
+  const filteredClubs = clubs.filter(club =>
+    `${club.name} ${club.city} ${club.country}`.toLowerCase().includes(clubSearch.toLowerCase())
+  )
 
   const handleTypeChange = (type: ContactType) => {
     setFormData((prev) => ({
@@ -204,21 +249,36 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
           </div>
 
           {formData.type === 'CLUB' && (
-            <div className="space-y-2">
+            <div className="space-y-2 relative" ref={clubDropdownRef}>
               <Label htmlFor="clubId">Related Club *</Label>
-              <Select
+              <Input
                 id="clubId"
+                type="text"
                 required
-                value={formData.clubId || ''}
-                onChange={(e) => handleInputChange('clubId', e.target.value)}
-              >
-                <option value="">Select a club</option>
-                {clubs.map((club) => (
-                  <option key={club.id} value={club.id}>
-                    {club.name} - {club.city}
-                  </option>
-                ))}
-              </Select>
+                value={clubSearch}
+                onChange={(e) => handleClubSearch(e.target.value)}
+                onFocus={() => setShowClubDropdown(true)}
+                placeholder="Type to search clubs..."
+                className="w-full"
+              />
+              {showClubDropdown && (
+                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredClubs.length > 0 ? (
+                    filteredClubs.map((club) => (
+                      <div
+                        key={club.id}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        onClick={() => handleClubSelect(club)}
+                      >
+                        <div className="font-medium">{club.name}</div>
+                        <div className="text-sm text-gray-500">{club.city}, {club.country}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-gray-500">No clubs found</div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -274,6 +334,12 @@ export function ContactModal({ isOpen, onClose, onSave, contact, defaultClubId, 
               rows={3}
             />
           </div>
+
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+              <p className="text-red-800 text-sm">{error}</p>
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>

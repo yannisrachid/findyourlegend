@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
     // Add search filters if provided
     if (search) {
       const searchConditions = [
-        { firstName: { contains: search } },
-        { lastName: { contains: search } },
-        { position: { contains: search } },
-        { nationality: { contains: search } },
-        { club: { name: { contains: search } } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { position: { contains: search, mode: 'insensitive' } },
+        { nationality: { contains: search, mode: 'insensitive' } },
+        { club: { name: { contains: search, mode: 'insensitive' } } },
       ]
 
       if (where.clubId) {
@@ -79,6 +79,31 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: PlayerFormData = await request.json()
+
+    // Check for duplicate player (same firstName, lastName, and clubId)
+    const existingPlayer = await prisma.player.findFirst({
+      where: {
+        firstName: {
+          equals: body.firstName,
+          mode: 'insensitive', // Case-insensitive comparison
+        },
+        lastName: {
+          equals: body.lastName,
+          mode: 'insensitive',
+        },
+        clubId: body.clubId,
+      },
+      include: {
+        club: true,
+      },
+    })
+
+    if (existingPlayer) {
+      return NextResponse.json(
+        { error: `A player named "${body.firstName} ${body.lastName}" already exists in ${existingPlayer.club.name}` },
+        { status: 409 } // Conflict status code
+      )
+    }
 
     const player = await prisma.player.create({
       data: body,
